@@ -64,90 +64,103 @@
   <div id="suggestion-list"></div>
   
   <script>
-    // Retrieve suggestions from local storage or initialize an empty array
-    let suggestions = JSON.parse(localStorage.getItem('suggestions')) || [];
-    
+    // Retrieve suggestions from the server or initialize an empty array
+    let suggestions = [];
+
+    // Retrieve user's vote status from local storage or initialize as an empty object
+    let userVoteStatus = JSON.parse(localStorage.getItem('userVoteStatus')) || {};
+
     // Render suggestions on page load
     renderSuggestions();
-    
+
     // Handle form submission
     document.getElementById('suggestion-form').addEventListener('submit', function(event) {
       event.preventDefault();
-      
+
       // Get the suggestion text from the input field
       let suggestionText = document.getElementById('suggestion-input').value;
-      
+
       // Create a new suggestion object with initial vote count of 0
       let suggestion = {
         text: suggestionText,
         votes: 0
       };
-      
+
       // Add the suggestion to the array
       suggestions.push(suggestion);
-      
-      // Save the updated suggestions array to local storage
-      localStorage.setItem('suggestions', JSON.stringify(suggestions));
-      
+
+      // Save the updated suggestions array to the server
+      saveSuggestions();
+
       // Clear the input field
       document.getElementById('suggestion-input').value = '';
-      
+
       // Render the updated suggestions
       renderSuggestions();
     });
-    
-    // Render the suggestions on the page
+
+    // Handle vote button click
+    document.getElementById('suggestion-list').addEventListener('click', function(event) {
+      if (event.target.classList.contains('vote-button')) {
+        let suggestionIndex = event.target.dataset.index;
+        let suggestion = suggestions[suggestionIndex];
+
+        // Check if the user has already voted for a suggestion
+        if (!userVoteStatus.voted) {
+          // Increment the vote count for the selected suggestion
+          suggestion.votes++;
+
+          // Update the user's vote status
+          userVoteStatus.voted = true;
+          userVoteStatus.votedSuggestionIndex = suggestionIndex;
+
+          // Save the updated suggestions and user vote status
+          saveSuggestions();
+          saveUserVoteStatus();
+
+          // Render the updated suggestions
+          renderSuggestions();
+        }
+      }
+    });
+
+    // Function to render suggestions on the page
     function renderSuggestions() {
       let suggestionList = document.getElementById('suggestion-list');
-      
-      // Clear the existing suggestions
       suggestionList.innerHTML = '';
-      
-      // Loop through the suggestions array and create HTML elements for each suggestion
+
       suggestions.forEach(function(suggestion, index) {
         let suggestionElement = document.createElement('div');
         suggestionElement.classList.add('suggestion');
-        
+
         let suggestionTextElement = document.createElement('span');
         suggestionTextElement.textContent = suggestion.text;
-        
-        let voteCountElement = document.createElement('span');
-        voteCountElement.classList.add('suggestion-votes');
-        voteCountElement.textContent = suggestion.votes;
-        
+
         let voteButton = document.createElement('button');
         voteButton.classList.add('vote-button');
         voteButton.textContent = 'Vote';
-        
-        // Handle vote button click
-        voteButton.addEventListener('click', function() {
-          // Check if the user has already voted
-          if (!localStorage.getItem('hasVoted')) {
-            // Increment the vote count for the suggestion
-            suggestion.votes++;
-            
-            // Save the updated suggestions array to local storage
-            localStorage.setItem('suggestions', JSON.stringify(suggestions));
-            
-            // Set a flag indicating that the user has voted
-            localStorage.setItem('hasVoted', true);
-            
-            // Disable all vote buttons
-            document.querySelectorAll('.vote-button').forEach(function(button) {
-              button.disabled = true;
-            });
-            
-            // Render the updated suggestions
-            renderSuggestions();
-          }
-        });
-        
+        voteButton.dataset.index = index;
+
+        let voteCountElement = document.createElement('span');
+        voteCountElement.classList.add('suggestion-votes');
+        voteCountElement.textContent = suggestion.votes;
+
         suggestionElement.appendChild(suggestionTextElement);
-        suggestionElement.appendChild(voteCountElement);
         suggestionElement.appendChild(voteButton);
-        
+        suggestionElement.appendChild(voteCountElement);
+
         suggestionList.appendChild(suggestionElement);
       });
+    }
+
+    // Function to save the suggestions array to the server
+    function saveSuggestions() {
+      // Code to save suggestions to the server
+    }
+
+    // Function to save the user's vote status to local storage
+    function saveUserVoteStatus() {
+      localStorage.setItem('userVoteStatus', JSON.stringify(userVoteStatus));
     }
   </script>
 </body>
