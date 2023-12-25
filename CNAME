@@ -1,1 +1,154 @@
-theodornengoy.com
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Suggestion Box</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    
+    h1 {
+      margin-top: 50px;
+    }
+    
+    #suggestion-form {
+      margin-top: 20px;
+    }
+    
+    #suggestion-input {
+      width: 80%;
+      height: 100px;
+      font-size: 16px;
+    }
+    
+    #suggestion-submit {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    
+    #suggestion-list {
+      margin-top: 50px;
+      text-align: left;
+    }
+    
+    .suggestion {
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #f2f2f2;
+    }
+    
+    .suggestion-votes {
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    
+    .vote-button {
+      margin-left: 10px;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Suggestion Box</h1>
+  
+  <form id="suggestion-form">
+    <textarea id="suggestion-input" placeholder="Write your suggestion here"></textarea>
+    <br>
+    <button id="suggestion-submit">Submit</button>
+  </form>
+  
+  <div id="suggestion-list"></div>
+  
+  <script>
+    // Retrieve suggestions from local storage or initialize an empty array
+    let suggestions = JSON.parse(localStorage.getItem('suggestions')) || [];
+    
+    // Render suggestions on page load
+    renderSuggestions();
+    
+    // Handle form submission
+    document.getElementById('suggestion-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+      
+      // Get the suggestion text from the input field
+      let suggestionText = document.getElementById('suggestion-input').value;
+      
+      // Create a new suggestion object with initial vote count of 0
+      let suggestion = {
+        text: suggestionText,
+        votes: 0
+      };
+      
+      // Add the suggestion to the array
+      suggestions.push(suggestion);
+      
+      // Save the updated suggestions array to local storage
+      localStorage.setItem('suggestions', JSON.stringify(suggestions));
+      
+      // Clear the input field
+      document.getElementById('suggestion-input').value = '';
+      
+      // Render the updated suggestions
+      renderSuggestions();
+    });
+    
+    // Render the suggestions on the page
+    function renderSuggestions() {
+      let suggestionList = document.getElementById('suggestion-list');
+      
+      // Clear the existing suggestions
+      suggestionList.innerHTML = '';
+      
+      // Loop through the suggestions array and create HTML elements for each suggestion
+      suggestions.forEach(function(suggestion, index) {
+        let suggestionElement = document.createElement('div');
+        suggestionElement.classList.add('suggestion');
+        
+        let suggestionTextElement = document.createElement('span');
+        suggestionTextElement.textContent = suggestion.text;
+        
+        let voteCountElement = document.createElement('span');
+        voteCountElement.classList.add('suggestion-votes');
+        voteCountElement.textContent = suggestion.votes;
+        
+        let voteButton = document.createElement('button');
+        voteButton.classList.add('vote-button');
+        voteButton.textContent = 'Vote';
+        
+        // Handle vote button click
+        voteButton.addEventListener('click', function() {
+          // Check if the user has already voted
+          if (!localStorage.getItem('hasVoted')) {
+            // Increment the vote count for the suggestion
+            suggestion.votes++;
+            
+            // Save the updated suggestions array to local storage
+            localStorage.setItem('suggestions', JSON.stringify(suggestions));
+            
+            // Set a flag indicating that the user has voted
+            localStorage.setItem('hasVoted', true);
+            
+            // Disable all vote buttons
+            document.querySelectorAll('.vote-button').forEach(function(button) {
+              button.disabled = true;
+            });
+            
+            // Render the updated suggestions
+            renderSuggestions();
+          }
+        });
+        
+        suggestionElement.appendChild(suggestionTextElement);
+        suggestionElement.appendChild(voteCountElement);
+        suggestionElement.appendChild(voteButton);
+        
+        suggestionList.appendChild(suggestionElement);
+      });
+    }
+  </script>
+</body>
+</html>
