@@ -1,122 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Suggestions List</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f7f7f7;
-        }
-        .container {
-            margin: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #dddddd;
-            text-align: left;
-        }
-        th {
-            background-color: #eeeeee;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        button {
-            margin-top: 10px;
-        }
-    </style>
+  <title>Suggestion Box</title>
+  <style>
+    /* CSS styles for the suggestion box */
+    .suggestion {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Suggestions</h1>
-        <form id="suggestionForm">
-            <input type="text" id="title" placeholder="Title" required>
-            <input type="text" id="description" placeholder="Description" required>
-            <button type="submit">Add Suggestion</button>
-        </form>
-        <table id="suggestionsTable">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th>Votes</th>
-                    <th>Vote</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Suggestions will go here -->
-            </tbody>
-        </table>
-    </div>
+  <h1>Suggestion Box</h1>
 
-    <script>
-        const voterId = 'UniqueVoterId'; // Dette må være en unik identifikator for brukeren
+  <form id="suggestionForm">
+    <input type="text" id="suggestionInput" placeholder="Enter your suggestion" required>
+    <button type="submit">Submit</button>
+  </form>
 
-        // Load suggestions from the server and display in the table
-        function loadSuggestions() {
-            fetch('http://localhost:3000/suggestions')
-                .then(response => response.json())
-                .then(suggestions => {
-                    const suggestionsBody = document.querySelector('#suggestionsTable tbody');
-                    suggestionsBody.innerHTML = ''; // Clear existing suggestions
-                    suggestions.forEach(suggestion => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${suggestion.title}</td>
-                            <td>${suggestion.description}</td>
-                            <td>${suggestion.votes}</td>
-                            <td><button onclick="vote('${suggestion._id}')">Vote</button></td>
-                        `;
-                        suggestionsBody.appendChild(tr);
-                    });
-                })
-                .catch(error => console.error('Error:', error));
+  <div id="suggestionList"></div>
+
+  <script>
+    // JavaScript code for handling suggestions and voting
+    const suggestionForm = document.getElementById('suggestionForm');
+    const suggestionInput = document.getElementById('suggestionInput');
+    const suggestionList = document.getElementById('suggestionList');
+    const votedSuggestions = new Set();
+    let userHasVoted = false;
+
+    suggestionForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const suggestionText = suggestionInput.value.trim();
+      if (suggestionText !== '') {
+        addSuggestion(suggestionText);
+        suggestionInput.value = '';
+      }
+    });
+
+    function addSuggestion(text) {
+      const suggestionElement = document.createElement('div');
+      suggestionElement.classList.add('suggestion');
+      suggestionElement.textContent = text;
+
+      const voteButton = document.createElement('button');
+      voteButton.textContent = 'Vote';
+      voteButton.addEventListener('click', function() {
+        if (!votedSuggestions.has(suggestionElement) && !userHasVoted) {
+          voteForSuggestion(suggestionElement);
+          votedSuggestions.add(suggestionElement);
+          userHasVoted = true;
+          disableVoteButtons();
         }
+      });
 
-        // Handle form submission for adding a new suggestion
-        document.getElementById('suggestionForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const title = document.getElementById('title').value;
-            const description = document.getElementById('description').value;
+      const voteCount = document.createElement('span');
+      voteCount.textContent = '0 Votes';
 
-            fetch('http://localhost:3000/suggestions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ title, description })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to create suggestion');
-                }
-                return response.json();
-            })
-            .then(addedSuggestion => {
-                document.getElementById('title').value = '';
-                document.getElementById('description').value = '';
-                loadSuggestions(); // Reload suggestions to include the new one
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert(error.message);
-            });
-        });
+      suggestionElement.appendChild(voteButton);
+      suggestionElement.appendChild(voteCount);
+      suggestionList.appendChild(suggestionElement);
+    }
 
-        // Function to handle voting on a suggestion
-        function vote(suggestionId) {
-            // Implementation for voting
-        }
+    function voteForSuggestion(suggestionElement) {
+      const voteCount = suggestionElement.querySelector('span');
+      let count = parseInt(voteCount.textContent);
+      count++;
+      voteCount.textContent = count + ' Votes';
+    }
 
-        // Initial load of suggestions
-        loadSuggestions();
-    </script>
+    function disableVoteButtons() {
+      const voteButtons = document.querySelectorAll('.suggestion button');
+      voteButtons.forEach(button => {
+        button.disabled = true;
+      });
+    }
+
+    // Disable vote buttons for already voted suggestions on page load
+    const alreadyVotedSuggestions = document.querySelectorAll('.suggestion');
+    alreadyVotedSuggestions.forEach(suggestion => {
+      const voteButton = suggestion.querySelector('button');
+      voteButton.disabled = true;
+    });
+  </script>
 </body>
 </html>
