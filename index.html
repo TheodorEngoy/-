@@ -1,167 +1,122 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Suggestion Box</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    
-    h1 {
-      margin-top: 50px;
-    }
-    
-    #suggestion-form {
-      margin-top: 20px;
-    }
-    
-    #suggestion-input {
-      width: 80%;
-      height: 100px;
-      font-size: 16px;
-    }
-    
-    #suggestion-submit {
-      margin-top: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-    }
-    
-    #suggestion-list {
-      margin-top: 50px;
-      text-align: left;
-    }
-    
-    .suggestion {
-      margin-bottom: 10px;
-      padding: 10px;
-      background-color: #f2f2f2;
-    }
-    
-    .suggestion-votes {
-      font-weight: bold;
-      margin-left: 10px;
-    }
-    
-    .vote-button {
-      margin-left: 10px;
-      padding: 5px 10px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Suggestions List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f7f7f7;
+        }
+        .container {
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #dddddd;
+            text-align: left;
+        }
+        th {
+            background-color: #eeeeee;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        button {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Suggestion Box</h1>
-  
-  <form id="suggestion-form">
-    <textarea id="suggestion-input" placeholder="Write your suggestion here"></textarea>
-    <br>
-    <button id="suggestion-submit">Submit</button>
-  </form>
-  
-  <div id="suggestion-list"></div>
-  
-  <script>
-    // Retrieve suggestions from the server or initialize an empty array
-    let suggestions = [];
+    <div class="container">
+        <h1>Suggestions</h1>
+        <form id="suggestionForm">
+            <input type="text" id="title" placeholder="Title" required>
+            <input type="text" id="description" placeholder="Description" required>
+            <button type="submit">Add Suggestion</button>
+        </form>
+        <table id="suggestionsTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Votes</th>
+                    <th>Vote</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Suggestions will go here -->
+            </tbody>
+        </table>
+    </div>
 
-    // Retrieve user's vote status from local storage or initialize as an empty object
-    let userVoteStatus = JSON.parse(localStorage.getItem('userVoteStatus')) || {};
+    <script>
+        const voterId = 'UniqueVoterId'; // Dette må være en unik identifikator for brukeren
 
-    // Render suggestions on page load
-    renderSuggestions();
-
-    // Handle form submission
-    document.getElementById('suggestion-form').addEventListener('submit', function(event) {
-      event.preventDefault();
-
-      // Get the suggestion text from the input field
-      let suggestionText = document.getElementById('suggestion-input').value;
-
-      // Create a new suggestion object with initial vote count of 0
-      let suggestion = {
-        text: suggestionText,
-        votes: 0
-      };
-
-      // Add the suggestion to the array
-      suggestions.push(suggestion);
-
-      // Save the updated suggestions array to the server
-      saveSuggestions();
-
-      // Clear the input field
-      document.getElementById('suggestion-input').value = '';
-
-      // Render the updated suggestions
-      renderSuggestions();
-    });
-
-    // Handle vote button click
-    document.getElementById('suggestion-list').addEventListener('click', function(event) {
-      if (event.target.classList.contains('vote-button')) {
-        let suggestionIndex = event.target.dataset.index;
-        let suggestion = suggestions[suggestionIndex];
-
-        // Check if the user has already voted for a suggestion
-        if (!userVoteStatus.voted) {
-          // Increment the vote count for the selected suggestion
-          suggestion.votes++;
-
-          // Update the user's vote status
-          userVoteStatus.voted = true;
-          userVoteStatus.votedSuggestionIndex = suggestionIndex;
-
-          // Save the updated suggestions and user vote status
-          saveSuggestions();
-          saveUserVoteStatus();
-
-          // Render the updated suggestions
-          renderSuggestions();
+        // Load suggestions from the server and display in the table
+        function loadSuggestions() {
+            fetch('http://localhost:3000/suggestions')
+                .then(response => response.json())
+                .then(suggestions => {
+                    const suggestionsBody = document.querySelector('#suggestionsTable tbody');
+                    suggestionsBody.innerHTML = ''; // Clear existing suggestions
+                    suggestions.forEach(suggestion => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${suggestion.title}</td>
+                            <td>${suggestion.description}</td>
+                            <td>${suggestion.votes}</td>
+                            <td><button onclick="vote('${suggestion._id}')">Vote</button></td>
+                        `;
+                        suggestionsBody.appendChild(tr);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
         }
-      }
-    });
 
-    // Function to render suggestions on the page
-    function renderSuggestions() {
-      let suggestionList = document.getElementById('suggestion-list');
-      suggestionList.innerHTML = '';
+        // Handle form submission for adding a new suggestion
+        document.getElementById('suggestionForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
 
-      suggestions.forEach(function(suggestion, index) {
-        let suggestionElement = document.createElement('div');
-        suggestionElement.classList.add('suggestion');
+            fetch('http://localhost:3000/suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, description })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create suggestion');
+                }
+                return response.json();
+            })
+            .then(addedSuggestion => {
+                document.getElementById('title').value = '';
+                document.getElementById('description').value = '';
+                loadSuggestions(); // Reload suggestions to include the new one
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message);
+            });
+        });
 
-        let suggestionTextElement = document.createElement('span');
-        suggestionTextElement.textContent = suggestion.text;
+        // Function to handle voting on a suggestion
+        function vote(suggestionId) {
+            // Implementation for voting
+        }
 
-        let voteButton = document.createElement('button');
-        voteButton.classList.add('vote-button');
-        voteButton.textContent = 'Vote';
-        voteButton.dataset.index = index;
-
-        let voteCountElement = document.createElement('span');
-        voteCountElement.classList.add('suggestion-votes');
-        voteCountElement.textContent = suggestion.votes;
-
-        suggestionElement.appendChild(suggestionTextElement);
-        suggestionElement.appendChild(voteButton);
-        suggestionElement.appendChild(voteCountElement);
-
-        suggestionList.appendChild(suggestionElement);
-      });
-    }
-
-    // Function to save the suggestions array to the server
-    function saveSuggestions() {
-      // Code to save suggestions to the server
-    }
-
-    // Function to save the user's vote status to local storage
-    function saveUserVoteStatus() {
-      localStorage.setItem('userVoteStatus', JSON.stringify(userVoteStatus));
-    }
-  </script>
+        // Initial load of suggestions
+        loadSuggestions();
+    </script>
 </body>
 </html>
